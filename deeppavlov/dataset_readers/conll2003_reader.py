@@ -17,7 +17,9 @@ class Conll2003DatasetReader(DatasetReader):
              provide_pos: bool = False,
              provide_doc_ids: bool = False,
              iob: bool = False,
-             docstart_token: str = None):
+             docstart_token: str = None,
+             max_seq_len: int = 512,
+             step_size: int = 256):
         self.provide_pos = provide_pos
         self.provide_doc_ids = provide_doc_ids
         self.iob = iob
@@ -46,6 +48,16 @@ class Conll2003DatasetReader(DatasetReader):
         return dataset
 
     def parse_ner_file(self, file_name: Path):
+        def wrap_samples(x, tags, curr_samples=[]):
+            if len(x) > self.max_seq_len:
+                return wrap_samples(
+                    x[self.step_size:],
+                    tags[self.step_size:],
+                    curr_samples+[(x[:self.max_seq_len], tags[:self.max_seq_len])]
+                )
+            else:
+                return curr_samples+[(x, tags)]
+        
         samples = []
         with file_name.open(encoding='utf8') as f:
             tokens = []
@@ -60,7 +72,7 @@ class Conll2003DatasetReader(DatasetReader):
                             x = x + (pos_tags,)
                         if self.provide_doc_ids:
                             x = x + (self.num_docs,)
-                        samples.append((x, tags))
+                        samples.extend(wrap_samples(x, tags))
                         tokens = []
                         pos_tags = []
                         tags = []
@@ -76,7 +88,7 @@ class Conll2003DatasetReader(DatasetReader):
                             x = x + (pos_tags,)
                         if self.provide_doc_ids:
                             x = x + (self.num_docs,)
-                        samples.append((x, tags))
+                        samples.extend(wrap_samples(x, tags))
                         tokens = []
                         pos_tags = []
                         tags = []
@@ -104,7 +116,7 @@ class Conll2003DatasetReader(DatasetReader):
                     x = x + (pos_tags,)
                 if self.provide_doc_ids:
                     x = x + (self.num_docs,)
-                samples.append((x, tags))
+                samples.extend(wrap_samples(x, tags))
                 self.num_docs += 1
             
             if self.iob:
