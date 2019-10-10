@@ -139,8 +139,9 @@ class BertNerPreprocessor(Component):
                                                               token_maksing_prob=self.token_maksing_prob)
             if self.max_seq_length is not None:
                 if len(sw_toks) > self.max_seq_length:
-                    raise RuntimeError(f"input sequence after bert tokenization"
-                                       f" shouldn't exceed {self.max_seq_length} tokens.")
+                    sw_toks = sw_toks[:self.max_seq_length]
+                    sw_mask = sw_mask[:self.max_seq_length]
+                    sw_ys = sw_ys[:self.max_seq_length]
             subword_tokens.append(sw_toks)
             subword_tok_ids.append(self.tokenizer.convert_tokens_to_ids(sw_toks))
             subword_masks.append(sw_mask)
